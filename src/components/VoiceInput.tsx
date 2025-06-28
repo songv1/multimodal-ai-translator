@@ -15,9 +15,11 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
   const [currentTranscript, setCurrentTranscript] = useState('');
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const transcriptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   const SILENCE_DURATION = 5000; // 5 seconds of silence
+  const TRANSCRIPT_DELAY = 1500; // 1.5 seconds delay before sending for translation
 
   const startRecording = async () => {
     // Check if speech recognition is supported
@@ -62,11 +64,11 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
       
       toast({
         title: "Recording Started",
-        description: "Speak now. Recording will stop after 5 seconds of silence.",
+        description: "Speak now. Real-time translation will begin shortly.",
       });
     };
 
-    // Step 3: Handle real-time transcription
+    // Step 3: Handle real-time transcription and translation
     recognition.onresult = (event) => {
       let finalTranscript = '';
       let interimTranscript = '';
@@ -74,6 +76,11 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
       // Reset silence timeout since we received speech
       if (silenceTimeoutRef.current) {
         clearTimeout(silenceTimeoutRef.current);
+      }
+
+      // Clear any pending transcript timeout
+      if (transcriptTimeoutRef.current) {
+        clearTimeout(transcriptTimeoutRef.current);
       }
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -89,6 +96,15 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
       const fullTranscript = finalTranscript + interimTranscript;
       setCurrentTranscript(fullTranscript);
       console.log('Real-time transcript:', fullTranscript);
+
+      // Send for real-time translation if we have substantial content
+      if (fullTranscript.trim().length > 10) {
+        // Debounce the translation calls to avoid too many API requests
+        transcriptTimeoutRef.current = setTimeout(() => {
+          console.log('Sending real-time transcript for translation:', fullTranscript.trim());
+          onTranscription(fullTranscript.trim());
+        }, TRANSCRIPT_DELAY);
+      }
 
       // Start silence detection timer
       silenceTimeoutRef.current = setTimeout(() => {
@@ -126,15 +142,20 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
         clearTimeout(silenceTimeoutRef.current);
         silenceTimeoutRef.current = null;
       }
+      if (transcriptTimeoutRef.current) {
+        clearTimeout(transcriptTimeoutRef.current);
+        transcriptTimeoutRef.current = null;
+      }
       setIsRecording(false);
       console.log('Speech recognition ended');
 
-      // Step 5: Pass the final transcript for translation
+      // Send final transcript for translation if we haven't sent it yet
       if (currentTranscript.trim()) {
+        console.log('Sending final transcript for translation:', currentTranscript.trim());
         onTranscription(currentTranscript.trim());
         toast({
           title: "Recording Complete",
-          description: "Audio transcribed successfully. Ready for translation.",
+          description: "Final transcript sent for translation.",
         });
       }
     };
@@ -159,6 +180,11 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
     if (silenceTimeoutRef.current) {
       clearTimeout(silenceTimeoutRef.current);
       silenceTimeoutRef.current = null;
+    }
+    
+    if (transcriptTimeoutRef.current) {
+      clearTimeout(transcriptTimeoutRef.current);
+      transcriptTimeoutRef.current = null;
     }
     
     if (recognitionRef.current) {
@@ -210,7 +236,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
       {isRecording && (
         <div className="flex items-center gap-2 text-sm text-blue-600">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Listening... (stops after 5s of silence)</span>
+          <span>Listening... (real-time translation active)</span>
         </div>
       )}
       
@@ -218,6 +244,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
         <div className="w-full max-w-md p-3 bg-blue-50 rounded-md border border-blue-200">
           <p className="text-xs text-blue-600 font-medium mb-1">Real-time transcript:</p>
           <p className="text-sm text-gray-800">{currentTranscript}</p>
+          <p className="text-xs text-green-600 mt-1">✓ Being translated in real-time</p>
         </div>
       )}
     </div>
