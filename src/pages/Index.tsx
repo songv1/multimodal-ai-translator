@@ -21,7 +21,7 @@ const Index = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedApiKey = localStorage.getItem('openai_api_key');
+    const storedApiKey = sessionStorage.getItem('openai_api_key');
     if (storedApiKey) {
       setApiKey(storedApiKey);
       setShowApiKeyInput(false);
@@ -40,7 +40,7 @@ const Index = () => {
       return;
     }
     
-    localStorage.setItem('openai_api_key', apiKey);
+    sessionStorage.setItem('openai_api_key', apiKey);
     setShowApiKeyInput(false);
     toast({
       title: "Success",
@@ -93,7 +93,7 @@ const Index = () => {
   };
 
   const handleClearApiKey = () => {
-    localStorage.removeItem('openai_api_key');
+    sessionStorage.removeItem('openai_api_key');
     setApiKey('');
     setShowApiKeyInput(true);
     setTranslatedText('');
