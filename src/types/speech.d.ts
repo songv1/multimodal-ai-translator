@@ -13,6 +13,7 @@ interface SpeechRecognition extends EventTarget {
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
+  resultIndex: number;
 }
 
 interface SpeechRecognitionErrorEvent extends Event {
@@ -28,6 +29,7 @@ interface SpeechRecognitionResultList {
 
 interface SpeechRecognitionResult {
   readonly length: number;
+  readonly isFinal: boolean;
   item(index: number): SpeechRecognitionAlternative;
   [index: number]: SpeechRecognitionAlternative;
 }
