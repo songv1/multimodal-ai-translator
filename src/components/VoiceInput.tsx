@@ -12,9 +12,12 @@ interface VoiceInputProps {
 const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [currentTranscript, setCurrentTranscript] = useState('');
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+
+  const SILENCE_DURATION = 5000; // 5 seconds of silence
 
   const startRecording = async () => {
     // Check if speech recognition is supported
@@ -29,78 +32,86 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
 
     // Clear any previous error state
     setHasError(false);
+    setCurrentTranscript('');
 
+    // Step 1: Get microphone permissions first
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('Microphone permission granted');
+    } catch (error) {
+      console.error('Microphone permission denied:', error);
+      toast({
+        title: "Microphone Access Required",
+        description: "Please allow microphone access to use voice input.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Step 2: Start recording audio with continuous transcription
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true; // Keep listening continuously
+    recognition.interimResults = true; // Get real-time results
     recognition.lang = navigator.language || 'en-US';
 
     recognition.onstart = () => {
       setIsRecording(true);
-      console.log('Speech recognition started');
+      console.log('Speech recognition started - continuous transcription active');
       
-      // Set a timeout to prevent hanging
-      timeoutRef.current = setTimeout(() => {
-        if (recognitionRef.current) {
-          recognitionRef.current.stop();
-          toast({
-            title: "Voice Input Timeout",
-            description: "No speech detected within 10 seconds. Please try again.",
-            variant: "destructive",
-          });
-        }
-      }, 10000);
+      toast({
+        title: "Recording Started",
+        description: "Speak now. Recording will stop after 5 seconds of silence.",
+      });
     };
 
+    // Step 3: Handle real-time transcription
     recognition.onresult = (event) => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      // Reset silence timeout since we received speech
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
       }
-      
-      const transcript = event.results[0][0].transcript;
-      console.log('Speech recognition result:', transcript);
-      
-      if (transcript.trim()) {
-        onTranscription(transcript);
-        toast({
-          title: "Voice Captured",
-          description: "Speech has been transcribed successfully!",
-        });
-      } else {
-        toast({
-          title: "No Speech Detected",
-          description: "No speech detected. Try speaking more clearly.",
-          variant: "destructive",
-        });
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
       }
+
+      // Update current transcript with both final and interim results
+      const fullTranscript = finalTranscript + interimTranscript;
+      setCurrentTranscript(fullTranscript);
+      console.log('Real-time transcript:', fullTranscript);
+
+      // Start silence detection timer
+      silenceTimeoutRef.current = setTimeout(() => {
+        console.log('5 seconds of silence detected, stopping recording');
+        stopRecording();
+      }, SILENCE_DURATION);
     };
 
     recognition.onerror = (event) => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      
       console.error('Speech recognition error:', event.error);
       setHasError(true);
       
       let errorMessage = "Voice recognition failed. Please try again.";
       
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        errorMessage = "Microphone access is required. Please allow microphone access when prompted by your browser.";
+        errorMessage = "Microphone access denied. Please allow microphone access and try again.";
       } else if (event.error === 'no-speech') {
-        errorMessage = "No speech detected. Try speaking more clearly.";
-        setHasError(false); // This isn't really an error state
+        errorMessage = "No speech detected. Please speak more clearly.";
+        setHasError(false);
       } else if (event.error === 'audio-capture') {
         errorMessage = "Couldn't capture audio. Check your microphone connection.";
       } else if (event.error === 'network') {
         errorMessage = "Network error. Check your internet connection.";
-      } else if (event.error === 'aborted') {
-        errorMessage = "Voice input was interrupted. Please try again.";
-        setHasError(false); // Reset error state for aborted
       }
 
       toast({
@@ -111,12 +122,21 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
     };
 
     recognition.onend = () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+        silenceTimeoutRef.current = null;
       }
       setIsRecording(false);
       console.log('Speech recognition ended');
+
+      // Step 5: Pass the final transcript for translation
+      if (currentTranscript.trim()) {
+        onTranscription(currentTranscript.trim());
+        toast({
+          title: "Recording Complete",
+          description: "Audio transcribed successfully. Ready for translation.",
+        });
+      }
     };
 
     recognitionRef.current = recognition;
@@ -134,10 +154,11 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
     }
   };
 
+  // Step 4: Stop recording manually
   const stopRecording = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+    if (silenceTimeoutRef.current) {
+      clearTimeout(silenceTimeoutRef.current);
+      silenceTimeoutRef.current = null;
     }
     
     if (recognitionRef.current) {
@@ -147,6 +168,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
 
   const handleRetry = () => {
     setHasError(false);
+    setCurrentTranscript('');
     startRecording();
   };
 
@@ -170,19 +192,35 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
   }
 
   return (
-    <Button
-      onClick={isRecording ? stopRecording : startRecording}
-      disabled={isDisabled}
-      variant={isRecording ? "destructive" : "outline"}
-      className="flex items-center gap-2"
-    >
-      {isRecording ? (
-        <MicOff className="h-4 w-4" />
-      ) : (
-        <Mic className="h-4 w-4" />
+    <div className="flex flex-col items-center gap-4">
+      <Button
+        onClick={isRecording ? stopRecording : startRecording}
+        disabled={isDisabled}
+        variant={isRecording ? "destructive" : "outline"}
+        className="flex items-center gap-2"
+      >
+        {isRecording ? (
+          <MicOff className="h-4 w-4" />
+        ) : (
+          <Mic className="h-4 w-4" />
+        )}
+        {isRecording ? 'Stop Recording' : 'Start Recording'}
+      </Button>
+      
+      {isRecording && (
+        <div className="flex items-center gap-2 text-sm text-blue-600">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Listening... (stops after 5s of silence)</span>
+        </div>
       )}
-      {isRecording ? 'Stop Recording' : 'Voice Input'}
-    </Button>
+      
+      {currentTranscript && (
+        <div className="w-full max-w-md p-3 bg-blue-50 rounded-md border border-blue-200">
+          <p className="text-xs text-blue-600 font-medium mb-1">Real-time transcript:</p>
+          <p className="text-sm text-gray-800">{currentTranscript}</p>
+        </div>
+      )}
+    </div>
   );
 };
 
