@@ -6,10 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Languages, Key, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { translateText } from '@/utils/translationService';
+import { translateMultimodalText } from '@/utils/multimodalTranslationService';
 import { SUPPORTED_LANGUAGES } from '@/constants/languages';
+import VoiceInput from '@/components/VoiceInput';
+import ImageInput from '@/components/ImageInput';
+
+type InputType = 'text' | 'voice' | 'image';
 
 const Index = () => {
   const [apiKey, setApiKey] = useState('');
@@ -18,6 +24,7 @@ const Index = () => {
   const [targetLanguage, setTargetLanguage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [currentInputType, setCurrentInputType] = useState<InputType>('text');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -78,7 +85,7 @@ const Index = () => {
 
     setIsLoading(true);
     try {
-      const result = await translateText(apiKey, inputText, targetLanguage);
+      const result = await translateMultimodalText(apiKey, inputText, targetLanguage, currentInputType);
       setTranslatedText(result);
     } catch (error) {
       console.error('Translation error:', error);
@@ -92,11 +99,36 @@ const Index = () => {
     }
   };
 
+  const handleVoiceTranscription = (transcript: string) => {
+    setInputText(transcript);
+    setCurrentInputType('voice');
+    toast({
+      title: "Voice Captured",
+      description: "Speech has been transcribed successfully!",
+    });
+  };
+
+  const handleImageText = (extractedText: string) => {
+    setInputText(extractedText);
+    setCurrentInputType('image');
+    toast({
+      title: "Text Extracted",
+      description: "Text has been extracted from the image!",
+    });
+  };
+
   const handleClearApiKey = () => {
     sessionStorage.removeItem('openai_api_key');
     setApiKey('');
     setShowApiKeyInput(true);
     setTranslatedText('');
+  };
+
+  const handleTabChange = (value: string) => {
+    setCurrentInputType(value as InputType);
+    if (value !== 'text') {
+      setInputText('');
+    }
   };
 
   return (
@@ -109,11 +141,11 @@ const Index = () => {
               <Languages className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              AI Translator
+              Multimodal AI Translator
             </h1>
           </div>
           <p className="text-lg text-gray-600">
-            Powered by OpenAI GPT-4.1 • Translate any text instantly
+            Powered by OpenAI GPT-4.1 • Translate text, voice, and images instantly
           </p>
         </div>
 
@@ -156,21 +188,61 @@ const Index = () => {
                 <div className="grid md:grid-cols-2 gap-8">
                   {/* Input Section */}
                   <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="inputText" className="text-lg font-semibold text-gray-700">
-                        Text to Translate
-                      </Label>
-                      <Textarea
-                        id="inputText"
-                        placeholder="Enter any text in any language..."
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        className="mt-2 min-h-[200px] resize-none border-2 focus:border-blue-500 transition-colors"
-                      />
-                      <p className="text-sm text-gray-500 mt-2">
-                        Source language will be detected automatically
-                      </p>
-                    </div>
+                    <Label className="text-lg font-semibold text-gray-700">
+                      Input Content
+                    </Label>
+                    
+                    <Tabs value={currentInputType} onValueChange={handleTabChange} className="w-full">
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="text">Text</TabsTrigger>
+                        <TabsTrigger value="voice">Voice</TabsTrigger>
+                        <TabsTrigger value="image">Image</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="text" className="space-y-4">
+                        <Textarea
+                          placeholder="Enter any text in any language..."
+                          value={inputText}
+                          onChange={(e) => setInputText(e.target.value)}
+                          className="min-h-[200px] resize-none border-2 focus:border-blue-500 transition-colors"
+                        />
+                      </TabsContent>
+                      
+                      <TabsContent value="voice" className="space-y-4">
+                        <div className="min-h-[200px] p-4 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center gap-4">
+                          <VoiceInput 
+                            onTranscription={handleVoiceTranscription}
+                            isDisabled={isLoading}
+                          />
+                          {inputText && (
+                            <div className="w-full p-3 bg-gray-50 rounded-md">
+                              <p className="text-sm text-gray-600 mb-1">Transcribed text:</p>
+                              <p className="text-gray-800">{inputText}</p>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="image" className="space-y-4">
+                        <div className="min-h-[200px] p-4 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center gap-4">
+                          <ImageInput 
+                            onImageText={handleImageText}
+                            apiKey={apiKey}
+                            isDisabled={isLoading}
+                          />
+                          {inputText && (
+                            <div className="w-full p-3 bg-gray-50 rounded-md">
+                              <p className="text-sm text-gray-600 mb-1">Extracted text:</p>
+                              <p className="text-gray-800">{inputText}</p>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                    
+                    <p className="text-sm text-gray-500">
+                      Source language will be detected automatically
+                    </p>
                   </div>
 
                   {/* Output Section */}
@@ -249,7 +321,7 @@ const Index = () => {
 
         {/* Footer */}
         <div className="text-center mt-12 text-gray-500">
-          <p>Secure • Private • No data stored on servers</p>
+          <p>Secure • Private • No data stored on servers • Multimodal Translation</p>
         </div>
       </div>
     </div>
