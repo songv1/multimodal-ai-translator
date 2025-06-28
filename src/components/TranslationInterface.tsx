@@ -56,6 +56,7 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
 
     setIsLoading(true);
     try {
+      // Voice input is transcribed to text via Web Speech API, so it's treated as 'text' input type
       const result = await translateMultimodalText(apiKey, inputText, targetLanguage, currentInputType);
       setTranslatedText(result);
     } catch (error) {
@@ -72,6 +73,8 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
 
   const handleVoiceTranscription = (transcript: string) => {
     setInputText(transcript);
+    // Voice input becomes text input after transcription
+    setCurrentInputType('text');
     toast({
       title: "Voice Captured",
       description: "Speech has been transcribed successfully!",

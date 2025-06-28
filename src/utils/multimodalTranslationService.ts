@@ -3,7 +3,7 @@ export const translateMultimodalText = async (
   apiKey: string, 
   text: string, 
   targetLanguage: string, 
-  inputType: 'text' | 'voice' | 'image'
+  inputType: 'text' | 'image'
 ): Promise<string> => {
   if (!apiKey || !text || !targetLanguage) {
     throw new Error('Missing required parameters');
@@ -13,10 +13,7 @@ export const translateMultimodalText = async (
   let model: string;
   switch (inputType) {
     case 'text':
-      model = 'gpt-4.1-2025-04-14'; // Using available model instead of gpt-4.1-nano
-      break;
-    case 'voice':
-      model = 'gpt-4o';  // Using available model instead of gpt-4o-mini-realtime-preview
+      model = 'gpt-4.1-2025-04-14';
       break;
     case 'image':
       model = 'gpt-4.1-mini-2025-04-14';
