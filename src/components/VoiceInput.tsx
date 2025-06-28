@@ -200,54 +200,35 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
 
   if (hasError) {
     return (
-      <div className="flex flex-col items-center gap-2">
-        <Button
-          onClick={handleRetry}
-          disabled={isDisabled}
-          variant="outline"
-          className="flex items-center gap-2 border-orange-300 text-orange-600 hover:bg-orange-50"
-        >
-          <AlertCircle className="h-4 w-4" />
-          Try Again
-        </Button>
-        <p className="text-xs text-gray-500 text-center max-w-48">
-          Voice input failed. Click to retry.
-        </p>
-      </div>
+      <Button
+        onClick={handleRetry}
+        disabled={isDisabled}
+        variant="outline"
+        size="icon"
+        className="border-orange-300 text-orange-600 hover:bg-orange-50"
+      >
+        <AlertCircle className="h-4 w-4" />
+      </Button>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <Button
-        onClick={isRecording ? stopRecording : startRecording}
-        disabled={isDisabled}
-        variant={isRecording ? "destructive" : "outline"}
-        className="flex items-center gap-2"
-      >
-        {isRecording ? (
-          <MicOff className="h-4 w-4" />
-        ) : (
-          <Mic className="h-4 w-4" />
-        )}
-        {isRecording ? 'Stop Recording' : 'Start Recording'}
-      </Button>
-      
+    <Button
+      onClick={isRecording ? stopRecording : startRecording}
+      disabled={isDisabled}
+      variant={isRecording ? "destructive" : "outline"}
+      size="icon"
+      className="relative"
+    >
+      {isRecording ? (
+        <MicOff className="h-4 w-4" />
+      ) : (
+        <Mic className="h-4 w-4" />
+      )}
       {isRecording && (
-        <div className="flex items-center gap-2 text-sm text-blue-600">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Listening... (real-time translation active)</span>
-        </div>
+        <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
       )}
-      
-      {currentTranscript && (
-        <div className="w-full max-w-md p-3 bg-blue-50 rounded-md border border-blue-200">
-          <p className="text-xs text-blue-600 font-medium mb-1">Real-time transcript:</p>
-          <p className="text-sm text-gray-800">{currentTranscript}</p>
-          <p className="text-xs text-green-600 mt-1">✓ Being translated in real-time</p>
-        </div>
-      )}
-    </div>
+    </Button>
   );
 };
 

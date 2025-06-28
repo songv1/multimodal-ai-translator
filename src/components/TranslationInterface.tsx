@@ -8,7 +8,7 @@ import { translateMultimodalText } from '@/utils/multimodalTranslationService';
 import InputSection from '@/components/InputSection';
 import OutputSection from '@/components/OutputSection';
 
-type InputType = 'text' | 'voice' | 'image';
+type InputType = 'text' | 'image';
 
 interface TranslationInterfaceProps {
   apiKey: string;
@@ -38,7 +38,7 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
 
     if (!inputText.trim()) {
       toast({
-        title: "Error",
+        title: "Error", 
         description: "Please enter text to translate",
         variant: "destructive",
       });
@@ -72,7 +72,6 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
 
   const handleVoiceTranscription = (transcript: string) => {
     setInputText(transcript);
-    setCurrentInputType('voice');
     toast({
       title: "Voice Captured",
       description: "Speech has been transcribed successfully!",
@@ -90,7 +89,7 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
 
   const handleTabChange = (value: string) => {
     setCurrentInputType(value as InputType);
-    if (value !== 'text') {
+    if (value === 'image') {
       setInputText('');
     }
   };
