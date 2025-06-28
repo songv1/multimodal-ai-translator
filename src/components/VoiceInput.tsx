@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface VoiceInputProps {
@@ -12,17 +12,46 @@ interface VoiceInputProps {
 const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied'>('unknown');
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { toast } = useToast();
 
-  const startRecording = () => {
+  const requestMicrophonePermission = async (): Promise<boolean> => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Stop the stream immediately as we only needed it for permission
+      stream.getTracks().forEach(track => track.stop());
+      setPermissionStatus('granted');
+      return true;
+    } catch (error) {
+      console.error('Microphone permission denied:', error);
+      setPermissionStatus('denied');
+      toast({
+        title: "Microphone Permission Required",
+        description: "Please allow microphone access to use voice input. Check your browser settings.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const startRecording = async () => {
+    // Check if speech recognition is supported
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       toast({
-        title: "Speech Recognition Not Available",
-        description: "Your browser doesn't support speech recognition.",
+        title: "Speech Recognition Not Supported",
+        description: "Your browser doesn't support speech recognition. Try using Chrome or Edge.",
         variant: "destructive",
       });
       return;
+    }
+
+    // Request microphone permission first
+    if (permissionStatus !== 'granted') {
+      const hasPermission = await requestMicrophonePermission();
+      if (!hasPermission) {
+        return;
+      }
     }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -30,20 +59,27 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
     
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'auto';
+    // Remove 'auto' - let browser use default language
+    recognition.lang = navigator.language || 'en-US';
 
     recognition.onstart = () => {
       setIsRecording(true);
+      console.log('Speech recognition started');
     };
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
+      console.log('Speech recognition result:', transcript);
       if (transcript.trim()) {
         onTranscription(transcript);
+        toast({
+          title: "Voice Captured",
+          description: "Speech has been transcribed successfully!",
+        });
       } else {
         toast({
           title: "No Speech Detected",
-          description: "No speech detected. Try again.",
+          description: "No speech detected. Try speaking more clearly.",
           variant: "destructive",
         });
       }
@@ -53,12 +89,15 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
       console.error('Speech recognition error:', event.error);
       let errorMessage = "Voice recognition failed. Please try again.";
       
-      if (event.error === 'not-allowed') {
-        errorMessage = "Microphone access is required for voice input.";
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        errorMessage = "Microphone access is required. Please check your browser permissions.";
+        setPermissionStatus('denied');
       } else if (event.error === 'no-speech') {
-        errorMessage = "No speech detected. Try again.";
+        errorMessage = "No speech detected. Try speaking more clearly.";
       } else if (event.error === 'audio-capture') {
-        errorMessage = "Couldn't process the audio clearly. Try speaking again in a quiet environment.";
+        errorMessage = "Couldn't capture audio. Check your microphone connection.";
+      } else if (event.error === 'network') {
+        errorMessage = "Network error. Check your internet connection.";
       }
 
       toast({
@@ -71,6 +110,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
     recognition.onend = () => {
       setIsRecording(false);
       setIsProcessing(false);
+      console.log('Speech recognition ended');
     };
 
     recognitionRef.current = recognition;
@@ -82,6 +122,29 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
       recognitionRef.current.stop();
     }
   };
+
+  const handleRetryPermission = async () => {
+    await requestMicrophonePermission();
+  };
+
+  if (permissionStatus === 'denied') {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <Button
+          onClick={handleRetryPermission}
+          disabled={isDisabled}
+          variant="outline"
+          className="flex items-center gap-2 border-orange-300 text-orange-600 hover:bg-orange-50"
+        >
+          <AlertCircle className="h-4 w-4" />
+          Grant Microphone Access
+        </Button>
+        <p className="text-xs text-gray-500 text-center max-w-48">
+          Microphone permission is required for voice input
+        </p>
+      </div>
+    );
+  }
 
   return (
     <Button
