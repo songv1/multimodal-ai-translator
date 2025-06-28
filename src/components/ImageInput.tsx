@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +15,7 @@ const ImageInput: React.FC<ImageInputProps> = ({ onImageText, apiKey, isDisabled
   const { toast } = useToast();
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.file?.[0];
+    const file = event.target.files?.[0];
     if (!file) return;
 
     // Check file type
