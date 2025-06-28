@@ -11,29 +11,10 @@ interface VoiceInputProps {
 
 const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied'>('unknown');
+  const [hasError, setHasError] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
-
-  const requestMicrophonePermission = async (): Promise<boolean> => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Stop the stream immediately as we only needed it for permission
-      stream.getTracks().forEach(track => track.stop());
-      setPermissionStatus('granted');
-      return true;
-    } catch (error) {
-      console.error('Microphone permission denied:', error);
-      setPermissionStatus('denied');
-      toast({
-        title: "Microphone Permission Required",
-        description: "Please allow microphone access to use voice input. Check your browser settings.",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
 
   const startRecording = async () => {
     // Check if speech recognition is supported
@@ -46,30 +27,42 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
       return;
     }
 
-    // Request microphone permission first
-    if (permissionStatus !== 'granted') {
-      const hasPermission = await requestMicrophonePermission();
-      if (!hasPermission) {
-        return;
-      }
-    }
+    // Clear any previous error state
+    setHasError(false);
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     
     recognition.continuous = false;
     recognition.interimResults = false;
-    // Remove 'auto' - let browser use default language
     recognition.lang = navigator.language || 'en-US';
 
     recognition.onstart = () => {
       setIsRecording(true);
       console.log('Speech recognition started');
+      
+      // Set a timeout to prevent hanging
+      timeoutRef.current = setTimeout(() => {
+        if (recognitionRef.current) {
+          recognitionRef.current.stop();
+          toast({
+            title: "Voice Input Timeout",
+            description: "No speech detected within 10 seconds. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }, 10000);
     };
 
     recognition.onresult = (event) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
       const transcript = event.results[0][0].transcript;
       console.log('Speech recognition result:', transcript);
+      
       if (transcript.trim()) {
         onTranscription(transcript);
         toast({
@@ -86,18 +79,28 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
     };
 
     recognition.onerror = (event) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
       console.error('Speech recognition error:', event.error);
+      setHasError(true);
+      
       let errorMessage = "Voice recognition failed. Please try again.";
       
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        errorMessage = "Microphone access is required. Please check your browser permissions.";
-        setPermissionStatus('denied');
+        errorMessage = "Microphone access is required. Please allow microphone access when prompted by your browser.";
       } else if (event.error === 'no-speech') {
         errorMessage = "No speech detected. Try speaking more clearly.";
+        setHasError(false); // This isn't really an error state
       } else if (event.error === 'audio-capture') {
         errorMessage = "Couldn't capture audio. Check your microphone connection.";
       } else if (event.error === 'network') {
         errorMessage = "Network error. Check your internet connection.";
+      } else if (event.error === 'aborted') {
+        errorMessage = "Voice input was interrupted. Please try again.";
+        setHasError(false); // Reset error state for aborted
       }
 
       toast({
@@ -108,39 +111,59 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
     };
 
     recognition.onend = () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       setIsRecording(false);
-      setIsProcessing(false);
       console.log('Speech recognition ended');
     };
 
     recognitionRef.current = recognition;
-    recognition.start();
+    
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error('Failed to start speech recognition:', error);
+      setHasError(true);
+      toast({
+        title: "Voice Input Error",
+        description: "Failed to start voice recognition. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const stopRecording = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
   };
 
-  const handleRetryPermission = async () => {
-    await requestMicrophonePermission();
+  const handleRetry = () => {
+    setHasError(false);
+    startRecording();
   };
 
-  if (permissionStatus === 'denied') {
+  if (hasError) {
     return (
       <div className="flex flex-col items-center gap-2">
         <Button
-          onClick={handleRetryPermission}
+          onClick={handleRetry}
           disabled={isDisabled}
           variant="outline"
           className="flex items-center gap-2 border-orange-300 text-orange-600 hover:bg-orange-50"
         >
           <AlertCircle className="h-4 w-4" />
-          Grant Microphone Access
+          Try Again
         </Button>
         <p className="text-xs text-gray-500 text-center max-w-48">
-          Microphone permission is required for voice input
+          Voice input failed. Click to retry.
         </p>
       </div>
     );
@@ -149,13 +172,11 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, isDisabled }) 
   return (
     <Button
       onClick={isRecording ? stopRecording : startRecording}
-      disabled={isDisabled || isProcessing}
+      disabled={isDisabled}
       variant={isRecording ? "destructive" : "outline"}
       className="flex items-center gap-2"
     >
-      {isProcessing ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : isRecording ? (
+      {isRecording ? (
         <MicOff className="h-4 w-4" />
       ) : (
         <Mic className="h-4 w-4" />
