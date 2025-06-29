@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -125,7 +124,7 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
           <div className="mt-8 flex flex-col sm:flex-row gap-4">
             <Button
               onClick={handleTranslate}
-              disabled={isLoading}
+              disabled={isLoading || !inputText.trim()}
               className="flex-1 h-12 text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
             >
               {isLoading ? (
