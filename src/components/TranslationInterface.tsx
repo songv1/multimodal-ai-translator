@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +23,7 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
   const [targetLanguage, setTargetLanguage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentInputType, setCurrentInputType] = useState<InputType>('text');
+  const [imageUrl, setImageUrl] = useState<string>('');
   const { toast } = useToast();
 
   const handleTranslate = async () => {
@@ -81,13 +81,23 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
     });
   };
 
-  const handleImageText = (extractedText: string) => {
+  const handleImageText = (extractedText: string, imageUrl: string) => {
     setInputText(extractedText);
+    setImageUrl(imageUrl);
     setCurrentInputType('image');
     toast({
       title: "Text Extracted",
       description: "Text has been extracted from the image!",
     });
+  };
+
+  const handleRemoveImage = () => {
+    if (imageUrl) {
+      URL.revokeObjectURL(imageUrl);
+    }
+    setImageUrl('');
+    setInputText('');
+    setCurrentInputType('text');
   };
 
   // Remove the handleTabChange function since we no longer have tabs
@@ -105,10 +115,12 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
               inputText={inputText}
               apiKey={apiKey}
               isLoading={isLoading}
+              imageUrl={imageUrl}
               onInputTextChange={setInputText}
               onTabChange={handleTabChange}
               onVoiceTranscription={handleVoiceTranscription}
               onImageText={handleImageText}
+              onRemoveImage={handleRemoveImage}
             />
 
             <OutputSection

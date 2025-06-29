@@ -14,10 +14,12 @@ interface InputSectionProps {
   inputText: string;
   apiKey: string;
   isLoading: boolean;
+  imageUrl?: string;
   onInputTextChange: (text: string) => void;
   onTabChange: (value: string) => void;
   onVoiceTranscription: (transcript: string) => void;
-  onImageText: (extractedText: string) => void;
+  onImageText: (extractedText: string, imageUrl: string) => void;
+  onRemoveImage: () => void;
 }
 
 const InputSection: React.FC<InputSectionProps> = ({
@@ -25,10 +27,12 @@ const InputSection: React.FC<InputSectionProps> = ({
   inputText,
   apiKey,
   isLoading,
+  imageUrl,
   onInputTextChange,
   onTabChange,
   onVoiceTranscription,
-  onImageText
+  onImageText,
+  onRemoveImage
 }) => {
   return (
     <div className="space-y-4">
@@ -47,8 +51,10 @@ const InputSection: React.FC<InputSectionProps> = ({
           <div className="absolute top-3 right-3 flex gap-2">
             <ImageInput 
               onImageText={onImageText}
+              onRemoveImage={onRemoveImage}
               apiKey={apiKey}
               isDisabled={isLoading}
+              imageUrl={imageUrl}
             />
             <VoiceInput 
               onTranscription={onVoiceTranscription}
