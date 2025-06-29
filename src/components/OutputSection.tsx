@@ -85,14 +85,28 @@ const OutputSection: React.FC<OutputSectionProps> = ({
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <Label className="text-lg font-semibold text-gray-700">
-            Translation
-          </Label>
-          {translatedText && (
+        <Label className="text-lg font-semibold text-gray-700 mb-2 block">
+          Translation
+        </Label>
+        <div className="relative mt-2 min-h-[200px] p-4 border-2 border-gray-200 rounded-md bg-gray-50 overflow-auto pb-16">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="flex items-center gap-2 text-blue-600">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Translating...</span>
+              </div>
+            </div>
+          ) : translatedText ? (
+            <p className="text-gray-800 whitespace-pre-wrap">{translatedText}</p>
+          ) : (
+            <p className="text-gray-400 italic">Translation will appear here...</p>
+          )}
+          
+          {/* Bottom right speak button */}
+          <div className="absolute bottom-3 right-3">
             <Button
               onClick={handleSpeak}
-              disabled={isSpeaking || isLoading}
+              disabled={!translatedText.trim() || isSpeaking || isLoading}
               variant="outline"
               size="sm"
               className="flex items-center gap-2"
@@ -109,21 +123,7 @@ const OutputSection: React.FC<OutputSectionProps> = ({
                 </>
               )}
             </Button>
-          )}
-        </div>
-        <div className="mt-2 min-h-[200px] p-4 border-2 border-gray-200 rounded-md bg-gray-50 overflow-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="flex items-center gap-2 text-blue-600">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Translating...</span>
-              </div>
-            </div>
-          ) : translatedText ? (
-            <p className="text-gray-800 whitespace-pre-wrap">{translatedText}</p>
-          ) : (
-            <p className="text-gray-400 italic">Translation will appear here...</p>
-          )}
+          </div>
         </div>
       </div>
     </div>
