@@ -1,7 +1,8 @@
+
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Image, Upload } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ImageInputProps {
@@ -133,10 +134,11 @@ const ImageInput: React.FC<ImageInputProps> = ({ onImageText, apiKey, isDisabled
         onClick={triggerFileInput}
         disabled={isDisabled}
         variant="outline"
-        className="flex items-center gap-2"
+        size="icon"
+        className="h-10 w-10"
+        title="Upload image to extract text"
       >
-        <Image className="h-4 w-4" />
-        Upload Image
+        <Camera className="h-4 w-4" />
       </Button>
     </div>
   );

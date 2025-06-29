@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -89,11 +90,9 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
     });
   };
 
+  // Remove the handleTabChange function since we no longer have tabs
   const handleTabChange = (value: string) => {
-    setCurrentInputType(value as InputType);
-    if (value === 'image') {
-      setInputText('');
-    }
+    // This function is kept for compatibility but no longer used
   };
 
   return (

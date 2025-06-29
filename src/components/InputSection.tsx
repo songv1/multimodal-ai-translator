@@ -2,9 +2,8 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import VoiceInput from '@/components/VoiceInput';
 import ImageInput from '@/components/ImageInput';
 
@@ -37,45 +36,27 @@ const InputSection: React.FC<InputSectionProps> = ({
         Input Content
       </Label>
       
-      <Tabs value={currentInputType} onValueChange={onTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="text">Text</TabsTrigger>
-          <TabsTrigger value="image">Image</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="text" className="space-y-4">
-          <div className="relative">
-            <Textarea
-              placeholder="Enter any text in any language or use voice input..."
-              value={inputText}
-              onChange={(e) => onInputTextChange(e.target.value)}
-              className="min-h-[200px] resize-none border-2 focus:border-blue-500 transition-colors pr-16"
-            />
-            <div className="absolute top-3 right-3">
-              <VoiceInput 
-                onTranscription={onVoiceTranscription}
-                isDisabled={isLoading}
-              />
-            </div>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="image" className="space-y-4">
-          <div className="min-h-[200px] p-4 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center gap-4">
+      <div className="space-y-4">
+        <div className="relative">
+          <Textarea
+            placeholder="Enter any text in any language, use voice input, or upload an image..."
+            value={inputText}
+            onChange={(e) => onInputTextChange(e.target.value)}
+            className="min-h-[200px] resize-none border-2 focus:border-blue-500 transition-colors pr-32"
+          />
+          <div className="absolute top-3 right-3 flex gap-2">
             <ImageInput 
               onImageText={onImageText}
               apiKey={apiKey}
               isDisabled={isLoading}
             />
-            {inputText && (
-              <div className="w-full p-3 bg-gray-50 rounded-md">
-                <p className="text-sm text-gray-600 mb-1">Extracted text:</p>
-                <p className="text-gray-800">{inputText}</p>
-              </div>
-            )}
+            <VoiceInput 
+              onTranscription={onVoiceTranscription}
+              isDisabled={isLoading}
+            />
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
       
       <p className="text-sm text-gray-500">
         Source language will be detected automatically
