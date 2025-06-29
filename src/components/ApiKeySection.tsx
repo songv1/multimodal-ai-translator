@@ -1,11 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Key } from 'lucide-react';
-
 interface ApiKeySectionProps {
   apiKey: string;
   setApiKey: (key: string) => void;
@@ -13,7 +11,6 @@ interface ApiKeySectionProps {
   onClearApiKey: () => void;
   showApiKeyInput: boolean;
 }
-
 const ApiKeySection: React.FC<ApiKeySectionProps> = ({
   apiKey,
   setApiKey,
@@ -22,21 +19,11 @@ const ApiKeySection: React.FC<ApiKeySectionProps> = ({
   showApiKeyInput
 }) => {
   if (!showApiKeyInput) {
-    return (
-      <div className="mb-8 flex justify-end">
-        <Button
-          onClick={onClearApiKey}
-          variant="outline"
-          className="border-2 hover:border-red-300 hover:text-red-600"
-        >
-          Change API Key
-        </Button>
-      </div>
-    );
+    return <div className="mb-8 flex justify-end">
+        
+      </div>;
   }
-
-  return (
-    <Card className="mb-8 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+  return <Card className="mb-8 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Key className="h-5 w-5" />
@@ -46,14 +33,7 @@ const ApiKeySection: React.FC<ApiKeySectionProps> = ({
       <CardContent className="space-y-4">
         <div>
           <Label htmlFor="apiKey">Enter your OpenAI API Key</Label>
-          <Input
-            id="apiKey"
-            type="password"
-            placeholder="sk-..."
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            className="mt-2"
-          />
+          <Input id="apiKey" type="password" placeholder="sk-..." value={apiKey} onChange={e => setApiKey(e.target.value)} className="mt-2" />
           <p className="text-sm text-gray-500 mt-2">
             Your API key is stored securely in your browser's local storage and never sent to our servers.
           </p>
@@ -62,8 +42,6 @@ const ApiKeySection: React.FC<ApiKeySectionProps> = ({
           Save API Key
         </Button>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default ApiKeySection;
