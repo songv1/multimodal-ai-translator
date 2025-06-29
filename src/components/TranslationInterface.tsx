@@ -117,6 +117,7 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
               targetLanguage={targetLanguage}
               translatedText={translatedText}
               isLoading={isLoading}
+              apiKey={apiKey}
               onTargetLanguageChange={setTargetLanguage}
             />
           </div>
