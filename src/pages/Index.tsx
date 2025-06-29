@@ -60,7 +60,7 @@ const Index = () => {
 
         {/* Footer */}
         <div className="text-center mt-12 text-gray-500">
-          <p>Secure • Private • No data stored on servers • Multimodal Translation</p>
+          <p>Your data stays private. API keys are stored only in your browser using session storage and are automatically deleted when you close the tab. We don’t store or share any of your input—nothing is saved on our servers.</p>
         </div>
       </div>
     </div>;
