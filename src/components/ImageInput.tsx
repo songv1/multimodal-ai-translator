@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ interface ImageInputProps {
   apiKey: string;
   isDisabled: boolean;
   imageUrl?: string;
+  showThumbnail?: boolean;
 }
 
 const ImageInput: React.FC<ImageInputProps> = ({ 
@@ -17,7 +19,8 @@ const ImageInput: React.FC<ImageInputProps> = ({
   onRemoveImage, 
   apiKey, 
   isDisabled, 
-  imageUrl 
+  imageUrl,
+  showThumbnail = true
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -170,7 +173,7 @@ const ImageInput: React.FC<ImageInputProps> = ({
         </Button>
       </div>
       
-      {imageUrl && (
+      {showThumbnail && imageUrl && (
         <div className="relative inline-block">
           <img 
             src={imageUrl} 
