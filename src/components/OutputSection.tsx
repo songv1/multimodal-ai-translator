@@ -1,9 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Loader2, Volume2, Copy } from 'lucide-react';
+import { Loader2, Volume2, Copy, Check } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '@/constants/languages';
 import { speakText } from '@/utils/textToSpeechService';
 import { useToast } from '@/hooks/use-toast';
@@ -25,7 +24,18 @@ const OutputSection: React.FC<OutputSectionProps> = ({
 }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   const { toast } = useToast();
+
+  // Reset copy success state after 2 seconds
+  useEffect(() => {
+    if (copySuccess) {
+      const timer = setTimeout(() => {
+        setCopySuccess(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [copySuccess]);
 
   const handleSpeak = async () => {
     if (!translatedText.trim()) {
@@ -78,10 +88,7 @@ const OutputSection: React.FC<OutputSectionProps> = ({
     setIsCopying(true);
     try {
       await navigator.clipboard.writeText(translatedText);
-      toast({
-        title: "Success",
-        description: "Text copied to clipboard",
-      });
+      setCopySuccess(true);
     } catch (error) {
       console.error('Copy error:', error);
       toast({
@@ -145,6 +152,11 @@ const OutputSection: React.FC<OutputSectionProps> = ({
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Copying...
+                </>
+              ) : copySuccess ? (
+                <>
+                  <Check className="h-4 w-4 text-green-600" />
+                  Copied!
                 </>
               ) : (
                 <>
