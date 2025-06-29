@@ -27,6 +27,13 @@ const OutputSection: React.FC<OutputSectionProps> = ({
   const [copySuccess, setCopySuccess] = useState(false);
   const { toast } = useToast();
 
+  // Set English as default target language on first load
+  useEffect(() => {
+    if (!targetLanguage) {
+      onTargetLanguageChange('English');
+    }
+  }, [targetLanguage, onTargetLanguageChange]);
+
   // Reset copy success state after 2 seconds
   useEffect(() => {
     if (copySuccess) {
