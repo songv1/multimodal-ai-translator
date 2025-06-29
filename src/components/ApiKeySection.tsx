@@ -34,7 +34,9 @@ const ApiKeySection: React.FC<ApiKeySectionProps> = ({
         <div>
           <Label htmlFor="apiKey">Enter your OpenAI API Key</Label>
           <Input id="apiKey" type="password" placeholder="sk-..." value={apiKey} onChange={e => setApiKey(e.target.value)} className="mt-2" />
-          
+          <p className="text-sm text-gray-500 mt-2">
+            Your API key is stored securely in your browser's local storage and never sent to our servers.
+          </p>
         </div>
         <Button onClick={onSaveApiKey} className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
           Save API Key
