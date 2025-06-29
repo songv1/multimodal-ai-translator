@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Loader2, Volume2 } from 'lucide-react';
+import { Loader2, Volume2, Copy } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '@/constants/languages';
 import { speakText } from '@/utils/textToSpeechService';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +24,7 @@ const OutputSection: React.FC<OutputSectionProps> = ({
   onTargetLanguageChange
 }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
   const { toast } = useToast();
 
   const handleSpeak = async () => {
@@ -61,6 +62,35 @@ const OutputSection: React.FC<OutputSectionProps> = ({
       });
     } finally {
       setIsSpeaking(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!translatedText.trim()) {
+      toast({
+        title: "Error",
+        description: "No text to copy",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCopying(true);
+    try {
+      await navigator.clipboard.writeText(translatedText);
+      toast({
+        title: "Success",
+        description: "Text copied to clipboard",
+      });
+    } catch (error) {
+      console.error('Copy error:', error);
+      toast({
+        title: "Copy Error",
+        description: "Failed to copy text to clipboard",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCopying(false);
     }
   };
 
@@ -102,8 +132,27 @@ const OutputSection: React.FC<OutputSectionProps> = ({
             <p className="text-gray-400 italic">Translation will appear here...</p>
           )}
           
-          {/* Bottom right speak button */}
-          <div className="absolute bottom-3 right-3">
+          {/* Bottom right buttons */}
+          <div className="absolute bottom-3 right-3 flex gap-2">
+            <Button
+              onClick={handleCopy}
+              disabled={!translatedText.trim() || isCopying || isLoading}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              {isCopying ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Copying...
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4" />
+                  Copy
+                </>
+              )}
+            </Button>
             <Button
               onClick={handleSpeak}
               disabled={!translatedText.trim() || isSpeaking || isLoading}
