@@ -12,7 +12,6 @@ type InputType = 'text' | 'image';
 interface InputSectionProps {
   currentInputType: InputType;
   inputText: string;
-  apiKey: string;
   isLoading: boolean;
   imageUrl?: string;
   onInputTextChange: (text: string) => void;
@@ -25,7 +24,6 @@ interface InputSectionProps {
 const InputSection: React.FC<InputSectionProps> = ({
   currentInputType,
   inputText,
-  apiKey,
   isLoading,
   imageUrl,
   onInputTextChange,
@@ -54,7 +52,6 @@ const InputSection: React.FC<InputSectionProps> = ({
             <ImageInput 
               onImageText={onImageText}
               onRemoveImage={onRemoveImage}
-              apiKey={apiKey}
               isDisabled={isLoading}
               imageUrl={imageUrl}
               showThumbnail={false}

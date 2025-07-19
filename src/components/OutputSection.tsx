@@ -11,7 +11,6 @@ interface OutputSectionProps {
   targetLanguage: string;
   translatedText: string;
   isLoading: boolean;
-  apiKey: string;
   onTargetLanguageChange: (language: string) => void;
 }
 
@@ -19,7 +18,6 @@ const OutputSection: React.FC<OutputSectionProps> = ({
   targetLanguage,
   translatedText,
   isLoading,
-  apiKey,
   onTargetLanguageChange
 }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -54,18 +52,9 @@ const OutputSection: React.FC<OutputSectionProps> = ({
       return;
     }
 
-    if (!apiKey) {
-      toast({
-        title: "Error",
-        description: "API key required for text-to-speech",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSpeaking(true);
     try {
-      await speakText(apiKey, translatedText);
+      await speakText(translatedText);
       toast({
         title: "Success",
         description: "Audio playback completed",

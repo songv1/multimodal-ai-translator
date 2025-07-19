@@ -10,14 +10,10 @@ import OutputSection from '@/components/OutputSection';
 type InputType = 'text' | 'image';
 
 interface TranslationInterfaceProps {
-  apiKey: string;
-  onClearApiKey: () => void;
+  // No longer need apiKey prop
 }
 
-const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
-  apiKey,
-  onClearApiKey
-}) => {
+const TranslationInterface: React.FC<TranslationInterfaceProps> = () => {
   const [inputText, setInputText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [targetLanguage, setTargetLanguage] = useState('');
@@ -27,15 +23,6 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
   const { toast } = useToast();
 
   const handleTranslate = async () => {
-    if (!apiKey) {
-      toast({
-        title: "Error",
-        description: "Please enter your OpenAI API key first",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!inputText.trim()) {
       toast({
         title: "Error", 
@@ -57,13 +44,13 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
     setIsLoading(true);
     try {
       // Voice input is transcribed to text via Web Speech API, so it's treated as 'text' input type
-      const result = await translateMultimodalText(apiKey, inputText, targetLanguage, currentInputType);
+      const result = await translateMultimodalText(inputText, targetLanguage, currentInputType);
       setTranslatedText(result);
     } catch (error) {
       console.error('Translation error:', error);
       toast({
         title: "Translation Error",
-        description: error instanceof Error ? error.message : "Failed to translate text. Please check your API key and try again.",
+        description: error instanceof Error ? error.message : "Failed to translate text. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -113,7 +100,6 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
             <InputSection
               currentInputType={currentInputType}
               inputText={inputText}
-              apiKey={apiKey}
               isLoading={isLoading}
               imageUrl={imageUrl}
               onInputTextChange={setInputText}
@@ -127,7 +113,6 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
               targetLanguage={targetLanguage}
               translatedText={translatedText}
               isLoading={isLoading}
-              apiKey={apiKey}
               onTargetLanguageChange={setTargetLanguage}
             />
           </div>
@@ -149,13 +134,6 @@ const TranslationInterface: React.FC<TranslationInterfaceProps> = ({
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </>
               )}
-            </Button>
-            <Button
-              onClick={onClearApiKey}
-              variant="outline"
-              className="h-12 px-6 border-2 hover:border-red-300 hover:text-red-600"
-            >
-              Change API Key
             </Button>
           </div>
         </CardContent>

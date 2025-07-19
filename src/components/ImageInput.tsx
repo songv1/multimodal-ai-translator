@@ -8,7 +8,6 @@ import { useToast } from '@/hooks/use-toast';
 interface ImageInputProps {
   onImageText: (text: string, imageUrl: string) => void;
   onRemoveImage: () => void;
-  apiKey: string;
   isDisabled: boolean;
   imageUrl?: string;
   showThumbnail?: boolean;
@@ -17,7 +16,6 @@ interface ImageInputProps {
 const ImageInput: React.FC<ImageInputProps> = ({ 
   onImageText, 
   onRemoveImage, 
-  apiKey, 
   isDisabled, 
   imageUrl,
   showThumbnail = true
@@ -57,7 +55,7 @@ const ImageInput: React.FC<ImageInputProps> = ({
       const imageUrl = URL.createObjectURL(file);
       
       const base64Image = await convertToBase64(file);
-      const extractedText = await extractTextFromImage(base64Image, apiKey);
+      const extractedText = await extractTextFromImage(base64Image);
       
       if (extractedText.trim()) {
         onImageText(extractedText, imageUrl);
@@ -98,42 +96,24 @@ const ImageInput: React.FC<ImageInputProps> = ({
     });
   };
 
-  const extractTextFromImage = async (base64Image: string, apiKey: string): Promise<string> => {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const extractTextFromImage = async (base64Image: string): Promise<string> => {
+    const response = await fetch('https://gcceplgwujpcymiapbrb.supabase.co/functions/v1/extract-image-text', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-mini',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Extract all readable text from this image. Return only the text content, no explanations or formatting.'
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:image/jpeg;base64,${base64Image}`
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 1000,
+        base64Image,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to process image: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to process image: ${response.status}`);
     }
 
     const data = await response.json();
-    return data.choices[0]?.message?.content?.trim() || '';
+    return data.extractedText || '';
   };
 
   const triggerFileInput = () => {

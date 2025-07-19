@@ -1,36 +1,38 @@
 
-export const speakText = async (apiKey: string, text: string): Promise<void> => {
-  if (!apiKey || !text) {
+export const speakText = async (text: string): Promise<void> => {
+  if (!text) {
     throw new Error('Missing required parameters');
   }
 
-  const response = await fetch('https://api.openai.com/v1/audio/speech', {
+  const response = await fetch('https://gcceplgwujpcymiapbrb.supabase.co/functions/v1/text-to-speech', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'tts-1',
-      input: text,
-      voice: 'nova', // Using 'nova' as 'coral' is not available in OpenAI TTS
-      response_format: 'mp3',
-      speed: 1.0,
+      text,
     }),
   });
 
   if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('Invalid API key. Please check your OpenAI API key.');
-    } else if (response.status === 429) {
-      throw new Error('Rate limit exceeded. Please try again later.');
-    } else {
-      throw new Error(`Text-to-speech failed: ${response.status} ${response.statusText}`);
-    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Text-to-speech failed: ${response.status} ${response.statusText}`);
   }
 
-  const audioBuffer = await response.arrayBuffer();
-  const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+  const data = await response.json();
+  
+  if (!data.audioContent) {
+    throw new Error('Invalid response from text-to-speech service');
+  }
+
+  // Convert base64 to audio blob
+  const binaryString = atob(data.audioContent);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  
+  const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
   const audioUrl = URL.createObjectURL(audioBlob);
   
   const audio = new Audio(audioUrl);
