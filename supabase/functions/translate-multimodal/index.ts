@@ -7,6 +7,10 @@ const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
 };
 
 serve(async (req) => {
@@ -25,8 +29,27 @@ serve(async (req) => {
     const { text, targetLanguage, inputType } = await req.json();
     console.log('Request data:', { text: text?.substring(0, 100), targetLanguage, inputType });
 
+    // Enhanced input validation
     if (!text || !targetLanguage) {
       throw new Error('Missing required parameters');
+    }
+
+    if (typeof text !== 'string' || typeof targetLanguage !== 'string') {
+      throw new Error('Invalid parameter types');
+    }
+
+    if (text.length > 10000) {
+      throw new Error('Text length exceeds maximum limit');
+    }
+
+    if (targetLanguage.length > 100) {
+      throw new Error('Target language parameter too long');
+    }
+
+    // Basic content filtering
+    const suspiciousPatterns = [/<script/i, /javascript:/i, /vbscript:/i, /onload=/i, /onerror=/i];
+    if (suspiciousPatterns.some(pattern => pattern.test(text))) {
+      throw new Error('Invalid content detected');
     }
 
     // Select model based on input type
@@ -108,11 +131,29 @@ Input type: ${inputType}`
     });
   } catch (error) {
     console.error('Translation error:', error);
+    
+    // Generic error message for security
+    const isClientError = error instanceof Error && (
+      error.message.includes('Missing required parameters') ||
+      error.message.includes('Invalid parameter types') ||
+      error.message.includes('Text length exceeds') ||
+      error.message.includes('Target language parameter') ||
+      error.message.includes('Invalid content detected')
+    );
+    
+    const errorMessage = isClientError ? error.message : "Translation service temporarily unavailable";
+    const statusCode = isClientError ? 400 : 500;
+    
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Translation failed" 
+      error: errorMessage 
     }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: statusCode,
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json',
+        'X-RateLimit-Limit': '100',
+        'X-RateLimit-Window': '3600'
+      },
     });
   }
 });

@@ -7,6 +7,10 @@ const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
 };
 
 serve(async (req) => {
@@ -25,8 +29,23 @@ serve(async (req) => {
     const { base64Image } = await req.json();
     console.log('Image received for text extraction');
 
+    // Enhanced input validation
     if (!base64Image) {
       throw new Error('Missing base64Image parameter');
+    }
+
+    if (typeof base64Image !== 'string') {
+      throw new Error('Invalid parameter type');
+    }
+
+    // Validate base64 format and reasonable size (max ~10MB base64)
+    if (base64Image.length > 14000000) {
+      throw new Error('Image size exceeds maximum limit');
+    }
+
+    // Basic base64 validation
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Image)) {
+      throw new Error('Invalid base64 format');
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -77,11 +96,28 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Image text extraction error:', error);
+    
+    // Generic error message for security
+    const isClientError = error instanceof Error && (
+      error.message.includes('Missing base64Image parameter') ||
+      error.message.includes('Invalid parameter type') ||
+      error.message.includes('Image size exceeds') ||
+      error.message.includes('Invalid base64 format')
+    );
+    
+    const errorMessage = isClientError ? error.message : "Image processing service temporarily unavailable";
+    const statusCode = isClientError ? 400 : 500;
+    
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Image text extraction failed" 
+      error: errorMessage 
     }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: statusCode,
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json',
+        'X-RateLimit-Limit': '20',
+        'X-RateLimit-Window': '3600'
+      },
     });
   }
 });

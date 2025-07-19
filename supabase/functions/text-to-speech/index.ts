@@ -7,6 +7,10 @@ const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
 };
 
 serve(async (req) => {
@@ -25,8 +29,23 @@ serve(async (req) => {
     const { text } = await req.json();
     console.log('Text received for speech synthesis:', text?.substring(0, 100));
 
+    // Enhanced input validation
     if (!text) {
       throw new Error('Missing required parameters');
+    }
+
+    if (typeof text !== 'string') {
+      throw new Error('Invalid parameter type');
+    }
+
+    if (text.length > 5000) {
+      throw new Error('Text length exceeds maximum limit for speech synthesis');
+    }
+
+    // Basic content filtering
+    const suspiciousPatterns = [/<script/i, /javascript:/i, /vbscript:/i, /onload=/i, /onerror=/i];
+    if (suspiciousPatterns.some(pattern => pattern.test(text))) {
+      throw new Error('Invalid content detected');
     }
 
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
@@ -70,11 +89,28 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Text-to-speech error:', error);
+    
+    // Generic error message for security
+    const isClientError = error instanceof Error && (
+      error.message.includes('Missing required parameters') ||
+      error.message.includes('Invalid parameter type') ||
+      error.message.includes('Text length exceeds') ||
+      error.message.includes('Invalid content detected')
+    );
+    
+    const errorMessage = isClientError ? error.message : "Text-to-speech service temporarily unavailable";
+    const statusCode = isClientError ? 400 : 500;
+    
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Text-to-speech failed" 
+      error: errorMessage 
     }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: statusCode,
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json',
+        'X-RateLimit-Limit': '50',
+        'X-RateLimit-Window': '3600'
+      },
     });
   }
 });
