@@ -1,1 +1,11 @@
+
 project_id = "gcceplgwujpcymiapbrb"
+
+[functions.translate-multimodal]
+verify_jwt = false
+
+[functions.text-to-speech]
+verify_jwt = false
+
+[functions.extract-image-text]
+verify_jwt = false

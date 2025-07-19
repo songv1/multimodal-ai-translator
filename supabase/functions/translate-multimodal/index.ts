@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -14,7 +15,15 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Translate multimodal function called');
+    
+    if (!openAIApiKey) {
+      console.error('OPENAI_API_KEY is not set');
+      throw new Error('OpenAI API key is not configured');
+    }
+
     const { text, targetLanguage, inputType } = await req.json();
+    console.log('Request data:', { text: text?.substring(0, 100), targetLanguage, inputType });
 
     if (!text || !targetLanguage) {
       throw new Error('Missing required parameters');
@@ -24,14 +33,16 @@ serve(async (req) => {
     let model: string;
     switch (inputType) {
       case 'text':
-        model = 'gpt-4.1-2025-04-14';
+        model = 'gpt-4o';
         break;
       case 'image':
-        model = 'gpt-4.1-mini-2025-04-14';
+        model = 'gpt-4o-mini';
         break;
       default:
-        model = 'gpt-4.1-2025-04-14';
+        model = 'gpt-4o';
     }
+
+    console.log('Using model:', model);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -62,7 +73,12 @@ Input type: ${inputType}`
       }),
     });
 
+    console.log('OpenAI response status:', response.status);
+
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', response.status, errorText);
+      
       if (response.status === 401) {
         throw new Error('Invalid API key. Please check your OpenAI API key.');
       } else if (response.status === 429) {
@@ -75,13 +91,18 @@ Input type: ${inputType}`
     }
 
     const data = await response.json();
+    console.log('OpenAI response received');
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid OpenAI response structure:', data);
       throw new Error('Invalid response from OpenAI API');
     }
 
+    const translatedText = data.choices[0].message.content.trim();
+    console.log('Translation successful');
+
     return new Response(JSON.stringify({ 
-      translatedText: data.choices[0].message.content.trim() 
+      translatedText 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

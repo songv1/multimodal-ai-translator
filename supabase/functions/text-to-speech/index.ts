@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -14,7 +15,15 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Text-to-speech function called');
+    
+    if (!openAIApiKey) {
+      console.error('OPENAI_API_KEY is not set');
+      throw new Error('OpenAI API key is not configured');
+    }
+
     const { text } = await req.json();
+    console.log('Text received for speech synthesis:', text?.substring(0, 100));
 
     if (!text) {
       throw new Error('Missing required parameters');
@@ -35,7 +44,12 @@ serve(async (req) => {
       }),
     });
 
+    console.log('OpenAI TTS response status:', response.status);
+
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI TTS API error:', response.status, errorText);
+      
       if (response.status === 401) {
         throw new Error('Invalid API key. Please check your OpenAI API key.');
       } else if (response.status === 429) {
@@ -47,6 +61,7 @@ serve(async (req) => {
 
     const audioBuffer = await response.arrayBuffer();
     const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+    console.log('Text-to-speech successful');
 
     return new Response(JSON.stringify({ 
       audioContent: base64Audio 
